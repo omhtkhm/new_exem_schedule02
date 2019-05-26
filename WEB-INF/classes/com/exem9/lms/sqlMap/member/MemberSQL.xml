@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+    "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="member">
+	<typeAlias alias="MemberBean" 
+			   type="com.exem9.lms.web.member.bean.MemberBean" />	
+			   
+	<resultMap class="MemberBean" id="uMemberMap">
+		<result property="userId" column="user_id"/>
+		<result property="userPw" column="user_password"/>
+		<result property="userTeam" column="user_team_id"/>
+		<result property="userFlag" column="user_flag"/>
+		<result property="userDbms" column="user_dbms_id"/>		
+		<result property="userLevel" column="user_level"/>
+		<result property="userDept" column="user_department_id"/>
+		<result property="userPosi" column="user_position_id"/>
+		<result property="userNm" column="user_name"/>
+		<result property="userPhone" column="user_phone"/>
+		<result property="userMail" column="user_mail"/>
+		<result property="userHint" column="user_hint"/>
+		<result property="userPoint" column="user_point"/>
+	</resultMap>
+
+	<select id="getTeammember" parameterClass="java.util.HashMap" resultClass="MemberBean">
+	SELECT XM.user_id as userId,
+	       XM.user_name as userNm,
+	       XM.user_mail as userMail,
+	       XM.user_phone as userPhone	       
+	FROM xm_member xm, xm_team xt		
+	WHERE xm.USER_TEAM_ID = xt.TEAM_ID
+	AND xt.TEAM_ID = #teamId#		
+	<isNotEmpty property="user1Id">
+	and xm.user_Id != #user1Id#	
+	</isNotEmpty>
+	</select>			
+	
+	<select id="getUsermember" parameterClass="java.util.HashMap" resultClass="MemberBean">
+	SELECT user_id as userId,
+	       user_name as userNm,
+		   user_mail as userMail,
+		   user_phone as userPhone	       
+	FROM XM_MEMBER
+	WHERE user_team_id = #userTeam#		
+	</select> 		
+	
+	<typeAlias alias="MemberBean2" 
+			   type="com.exem9.lms.web.member.bean.MemberBean2" />	
+			   	
+	<resultMap class="MemberBean2" id="MemberMap2">
+		<result property="userId" column="user_id"/>
+		<result property="userNm" column="user_name"/>
+		<result property="userPhone" column="user_phone"/>
+		<result property="userMail" column="user_mail"/>
+	</resultMap>
+	
+	<select id="getSalsemember" resultMap="MemberMap2">
+	SELECT user_id ,
+	       user_name,
+		   user_mail,
+		   user_phone	       
+	FROM XM_MEMBER xm inner join xm_team xt
+	on xm.user_team_id = xt.team_id
+	and xt.department_id = 4
+	<!-- 
+	SELECT user_id as userId,
+	       user_name as userNm,
+		   user_mail as userMail,
+		   user_phone as userPhone	       
+	FROM XM_MEMBER xm inner join xm_team xt
+	on xm.user_team_id = xt.team_id
+	and xt.department_id = 4
+	-->	
+	</select>
+	
+	<select id="getteamuser" parameterClass="java.util.HashMap" resultClass="MemberBean">
+	SELECT user_id as userId,
+	       user_name as userNm,
+		   user_mail as userMail,
+		   user_phone as userPhone	       
+	FROM XM_MEMBER
+	WHERE user_team_id = #teamId#		
+	</select> 		 
+	
+	<select id="getteamuser1" parameterClass="java.util.HashMap" resultClass="MemberBean">
+	SELECT user_id as userId,
+	       user_name as userNm,
+		   user_mail as userMail,
+		   user_phone as userPhone	       
+	FROM XM_MEMBER
+	WHERE user_team_id = #teamId#		
+	and user_id != #userId#
+	</select> 	
+	
+	<select id="getmeminfo" parameterClass="java.util.HashMap" resultMap="uMemberMap">
+	 select user_id,       user_password,       user_name,       user_team_id,  
+			user_flag,       user_dbms_id,          user_level,        
+			user_department_id as user_department_id,          user_phone,    
+			user_mail,          user_position_id,          user_hint,         user_point 
+	 from
+	 (
+	 SELECT       user_id,       user_password,       user_name,       user_team_id,       
+			user_flag,       user_dbms_id,          user_level,          dp.department_id as user_department_id,          user_phone,       
+			user_mail,          user_position_id,          user_hint,          user_point,       
+			ROW_NUMBER() OVER(order by dp.department_id, u.user_team_id, u.user_name asc) as row_num
+			
+			FROM xm_member u       
+			left outer join 
+			(
+				select t.department_id, t.team_id from
+				xm_team t
+				left outer join xm_department dp
+				on t.department_id = dp.department_id
+			) dp
+			on u.user_team_id = dp.team_id
+			where 1=1     
+
+		<isNotEmpty property="selectTextVal">
+			<!-- 검색조건이 전체 -->
+			<isEqual property="selectBtnVal" compareValue="0"> 
+				and 
+				(u.user_id like '%' || #selectTextVal# || '%' or
+				 user_name like '%' || #selectTextVal# || '%' or
+				 u.user_team_id in (select team_id from xm_team xt, xm_department xdt 
+				where xt.department_id = xdt.department_id and xdt.department_name like '%' || #selectTextVal# || '%') or
+				u.user_team_id in (select team_id from xm_team where team_name like '%' || #selectTextVal# || '%')
+				)
+			</isEqual>
+			<!-- 검색조건이 ID -->
+			<isEqual property="selectBtnVal" compareValue="1"> 
+				and u.user_id like '%' || #selectTextVal# || '%'
+			</isEqual>
+			 <!-- 검색조건이 이름 -->
+			<isEqual property="selectBtnVal" compareValue="2">
+				and user_name like '%' || #selectTextVal# || '%'
+			</isEqual> 
+			 <!-- 검색조건이 부서-->
+			<isEqual property="selectBtnVal" compareValue="3">
+				and u.user_team_id in (select team_id from xm_team xt, xm_department xdt 
+				where xt.department_id = xdt.department_id and xdt.department_name like '%' || #selectTextVal# || '%')
+			</isEqual>
+			 <!-- 검색조건이 팀-->
+			<isEqual property="selectBtnVal" compareValue="4">
+				and u.user_team_id in (select team_id from xm_team where team_name like '%' || #selectTextVal# || '%')
+			</isEqual>
+		</isNotEmpty>
+		order by dp.department_id, u.user_team_id, u.user_name asc
+		) u
+		where 1=1
+		
+		<isNotEmpty property="pageNo">
+		and u.row_num BETWEEN #startNo# AND #endNo# 
+		</isNotEmpty>
+		<isEmpty property="pageNo">
+		and u.row_num BETWEEN 1 AND #viewCount#
+		</isEmpty>
+		
+	</select>
+
+	<select id="getNCount" parameterClass="java.util.HashMap" resultClass="Integer">
+	select count(user_id)
+		from xm_member u
+		left outer join 
+			(
+				select t.department_id, t.team_id from
+				xm_team t
+				left outer join xm_department dp
+				on t.department_id = dp.department_id
+			) dp
+			on u.user_team_id = dp.team_id
+		where 1 = 1
+		<isNotEmpty property="selectTextVal">
+			<!-- 검색조건이 전체 -->
+			<isEqual property="selectBtnVal" compareValue="0"> 
+				and 
+				(u.user_id like '%' || #selectTextVal# || '%' or
+				 user_name like '%' || #selectTextVal# || '%' or
+				 u.user_team_id in (select team_id from xm_team xt, xm_department xdt 
+				where xt.department_id = xdt.department_id and xdt.department_name like '%' || #selectTextVal# || '%') or
+				u.user_team_id in (select team_id from xm_team where team_name like '%' || #selectTextVal# || '%')
+				)
+			</isEqual>
+			
+			<!-- 검색조건이 ID -->
+			<isEqual property="selectBtnVal" compareValue="1"> 
+				and u.user_id like '%' || #selectTextVal# || '%'
+			</isEqual>
+			 <!-- 검색조건이 이름 -->
+			<isEqual property="selectBtnVal" compareValue="2">
+				and user_name like '%' || #selectTextVal# || '%'
+			</isEqual> 
+			 <!-- 검색조건이 부서-->
+			<isEqual property="selectBtnVal" compareValue="3">
+				and u.user_team_id in (select team_id from xm_team xt, xm_department xdt 
+				where xt.department_id = xdt.department_id and xdt.department_name like '%' || #selectTextVal# || '%')
+			</isEqual>
+			 <!-- 검색조건이 팀-->
+			<isEqual property="selectBtnVal" compareValue="4">
+				and u.user_team_id in (select team_id from xm_team where team_name like '%' || #selectTextVal# || '%')
+			</isEqual>
+		</isNotEmpty>
+	</select>
+	
+	<!-- 신규 사용자 인서트 시 -->
+	<update id="insertMeminfo" parameterClass="java.util.HashMap">
+	 INSERT INTO XM_MEMBER (
+            user_id, user_password, user_name, user_team_id, user_flag, user_dbms_id, 
+            user_level, user_phone, user_mail, user_position_id, 
+            user_hint, user_point)
+    VALUES (#user_id#, #user_password#, #user_name#, #user_team_id#, null, #user_dbms_id#, 
+            null, #user_phone#, #user_mail#, nullif(#user_position_id#,0), 
+            null, #user_point#)  
+	 </update> 
+	 
+	<!-- 사용자 정보 수정 -->
+	<update id="updateMeminfo" parameterClass="java.util.HashMap">
+	 Update XM_MEMBER set 
+            (user_id, 
+			user_name, 
+			user_team_id, 
+			user_flag, 
+			user_dbms_id, 
+            user_level, 
+			user_phone, 
+			user_mail, 
+			user_position_id, 
+            user_hint, 
+			user_point)
+    		=
+	(#user_id#, #user_name#, #user_team_id#, null, #user_dbms_id#, 
+            null, #user_phone#, #user_mail#, #user_position_id#, 
+            null, #user_point#)
+	where user_id = #chkId# 
+	 </update>
+	 
+	 <select id="getallmem" resultMap="uMemberMap">
+	 select user_id,       user_password,       user_name,       user_team_id,  
+			user_flag,       user_dbms_id,          user_level,        
+			user_department_id as user_department_id,          user_phone,    
+			user_mail,          user_position_id,          user_hint,         user_point 
+	 from
+	 (
+	 SELECT       user_id,       user_password,       user_name,       user_team_id,       
+			user_flag,       user_dbms_id,          user_level,          dp.department_id as user_department_id,          user_phone,       
+			user_mail,          user_position_id,          user_hint,          user_point,       
+			ROW_NUMBER() OVER(order by dp.department_id, u.user_team_id, u.user_name asc) as row_num
+			
+			FROM xm_member u       
+			left outer join 
+			(
+				select t.department_id, t.team_id from
+				xm_team t
+				left outer join xm_department dp
+				on t.department_id = dp.department_id
+			) dp
+			on u.user_team_id = dp.team_id
+			where 1=1     
+		order by dp.department_id, u.user_team_id, u.user_name asc
+		) u
+		where 1=1
+	</select>
+	
+	<!-- 사용자 삭제 -->
+	<update id="deleteMeminfo" parameterClass="java.util.HashMap">
+	 DELETE from XM_MEMBER 
+	 WHERE user_id = #chkId#  
+	 </update> 
+	
+</sqlMap>

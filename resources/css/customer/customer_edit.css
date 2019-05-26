@@ -1,0 +1,62 @@
+.tb_search_lmargin {
+	margin-left : 305px;
+}
+.fltBox1 {
+	width: 85px;
+}
+
+.box2_01 {
+	width:39px;
+}
+
+.box2_02 {
+	width:113px;
+}
+
+.box2_03 {
+	width:130px;
+}
+
+.box2_04 {
+	width:80px;
+}
+
+.box2_05 {
+	width:94px;
+}
+
+.box2_06 {
+	width:110px;
+}
+
+.box2_07 {
+	width:110px;
+}
+
+.box2_08 {
+	width:75px;
+}
+
+.box2_09 {
+	width:65px;
+}
+
+.box2_10 {
+	width:175px;
+}
+
+.inBtt_OK_CUS {
+	width:137px;
+	height:36px; 
+    padding:7px;
+	background:#262d31;
+	border:0px;
+	font-family: 'Archivo Narrow', sans-serif;
+    font-size:15px;
+	color:#fff;
+}
+.inBtt_OK_CUS:hover {
+	background:#3d4448;
+	color:#EAEAEA;
+}
+

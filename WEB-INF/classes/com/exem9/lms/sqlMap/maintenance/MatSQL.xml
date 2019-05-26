@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+    "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="maintenance">
+	<typeAlias alias="MatBean" 
+			   type="com.exem9.lms.web.maintenance.bean.MatBean"/> 
+			 		 	   
+	<resultMap class="MatBean" id="MatMap">
+		<result property="matId" column="maintenance_id"/>
+		<result property="custId" column="customer_id"/>
+		<result property="projId" column="project_id"/>
+		<result property="dbmsId" column="dbms_id"/>
+		<result property="dbmsVersion" column="dbms_version"/>
+		<!-- <result property="cususerId" column="cususer_id"/> -->
+		<result property="salesmanId" column="salesman_id"/>
+		<result property="mem1Id" column="user1_id"/>
+		<result property="mem2Id" column="user2_id"/>		
+		<result property="installDay" column="support_install_date"/>
+		<result property="contractId" column="support_level_id"/>
+		<result property="visitId" column="support_visit_id"/>
+		<result property="startDay" column="support_start_date"/>
+		<result property="endDay" column="support_end_date"/>
+		<result property="etc" column="etc"/>
+	</resultMap>			   
+	
+	<update id="insertMatinfo" parameterClass="java.util.HashMap">
+	insert into xm_maintenance (maintenance_id, customer_id, project_id, dbms_id, dbms_version, salesman_id, user1_id, 
+								<isNotEmpty property="user2Id">
+								user2_id, 
+								</isNotEmpty>
+								support_level_id, support_visit_id, 
+								<isNotEmpty property="supoinstallData">
+								support_install_date,
+								</isNotEmpty>								
+								<isNotEmpty property="supostateDate">
+								support_start_date,
+								</isNotEmpty>								
+								<isNotEmpty property="supoendDatae"> 
+								support_end_date,
+								</isNotEmpty>
+								etc, create_user, create_date, last_update_user, last_update_date
+								)
+								values(NEXTVAL('xm_maintenance_next_val'),
+								(select customer_Id as cusId from xm_customer where customer_name = #cusNm#),
+								(
+										select project_Id as proId 
+										from xm_customer c, xm_project p 
+										where c.customer_id = p.customer_id			
+										and c.customer_name = #cusNm#
+										and p.project_name = #proNm# 
+								), 
+											  #dbmsId#, #dbmsVersion#, 
+			                                  #salesmanId#, #user1Id#, 
+			                                  <isNotEmpty property="user2Id">
+			                                  #user2Id#, 
+			                                  </isNotEmpty>
+			                                  #supoLeverId#, #supoVisitId#,
+			                                  <isNotEmpty property="supoinstallData">
+			                                  #supoinstallData#::date, 
+			                                  </isNotEmpty>
+			                                  <isNotEmpty property="supostateDate">			                                  
+			                                  #supostateDate#::date, 
+			                                  </isNotEmpty>
+			                                  <isNotEmpty property="supoendDatae">
+			                                  #supoendDatae#::date,
+			                                  </isNotEmpty> 			                                  
+			                                  #etc#, #userId#, 
+			                                  current_date::date, null, null)          
+	</update>
+	
+	<select id="getmatIdinfo" parameterClass="java.util.HashMap" resultClass="Integer">
+		select max(maintenance_id)
+		from xm_maintenance 
+		<!-- 
+		select cususer_id
+		from xm_customer_member 
+		where cususer_name = #cususerNm#
+		--> 
+	</select>
+	
+	<update id="insertMatCusinfo" parameterClass="java.util.HashMap">
+	insert into xm_maintenance_cusmember values(#matId#,#cusUserId#)      
+	</update>
+	
+	<select id="getmatinfo" parameterClass="java.util.HashMap" resultMap="MatMap">
+ 		select 
+			 maintenance_id, customer_id, project_id, dbms_id, dbms_version, 
+			<!--  cususer_id, --> salesman_id, user1_id, user2_id, support_install_date, support_level_id, 
+			 support_visit_id, support_start_date, support_end_date, etc, 
+			 create_user, create_date, last_update_user, last_update_date 
+		from
+			 (
+				 select 
+					 maintenance_id, customer_id, project_id, dbms_id, dbms_version, 
+					 <!-- cususer_id, --> salesman_id, user1_id, user2_id, support_install_date, support_level_id, 
+					 support_visit_id, support_start_date, support_end_date, etc, 
+					 create_user, create_date, last_update_user, last_update_date,
+					 ROW_NUMBER() OVER(order by m.maintenance_id desc) as row_num 
+				 from xm_maintenance m
+					where 1=1     
+		
+				<isNotEmpty property="selectTextVal">
+					<!-- 검색조건이 전체 -->
+					<isEqual property="selectBtnVal" compareValue="0"> 
+						and
+						( 
+							 m.customer_id in (select customer_id from xm_customer where customer_name like '%' || #selectTextVal# || '%')
+							or 
+							 m.project_id in (select project_id from xm_project where project_name like '%' || #selectTextVal# || '%') 
+							or 
+							 m.dbms_id in (select dbms_id from xm_dbms where dbms_name like '%' || #selectTextVal# || '%')
+							or 
+							 (
+							 	m.user1_id in (select user_id from xm_member where user_name like '%' || #selectTextVal# || '%')
+							 	or
+							 	m.user2_id in (select user_id from xm_member where user_name like '%' || #selectTextVal# || '%')
+							 )
+							or 
+							 m.salesman_id in (select user_id from xm_member where user_team_id = 14 and user_name like '%' || #selectTextVal# || '%')
+							or 
+							 m.support_level_id in (select support_level_id from xm_support_level where support_level_name like '%' || #selectTextVal# || '%')
+						 )   
+					</isEqual>
+					<!-- 검색조건이 고객사 -->
+					<isEqual property="selectBtnVal" compareValue="1">
+						and 
+						 m.customer_id in (select customer_id from xm_customer where customer_name like '%' || #selectTextVal# || '%')
+					</isEqual>
+					<!-- 검색조건이 프로젝트 -->
+					<isEqual property="selectBtnVal" compareValue="2">
+						and 
+						 m.project_id in (select project_id from xm_project where project_name like '%' || #selectTextVal# || '%')
+					</isEqual>
+					<!-- 검색조건이 업무(제품명)-->
+					<isEqual property="selectBtnVal" compareValue="3">
+						and 
+						 m.dbms_id in (select dbms_id from xm_dbms where dbms_name like '%' || #selectTextVal# || '%')
+					</isEqual>
+					<!-- 담당 엔지니어 -->
+					<isEqual property="selectBtnVal" compareValue="4">
+						and 
+						 (
+						 	m.user1_id in (select user_id from xm_member where user_name like '%' || #selectTextVal# || '%')
+						 	or
+						 	m.user2_id in (select user_id from xm_member where user_name like '%' || #selectTextVal# || '%')
+						 )
+					</isEqual>
+					<!-- 영업대표 --> 
+					<isEqual property="selectBtnVal" compareValue="5">
+						and 
+						 m.salesman_id in (select user_id from xm_member where user_team_id = 14 and user_name like '%' || #selectTextVal# || '%')
+					</isEqual>
+					<!-- 계약상태 -->
+					<isEqual property="selectBtnVal" compareValue="6"> 
+						and 
+						 m.support_level_id in (select support_level_id from xm_support_level where support_level_name like '%' || #selectTextVal# || '%')
+					</isEqual>
+				</isNotEmpty>
+			
+			order by maintenance_id desc
+			) u
+		where 1=1
+		
+		<isNotEmpty property="pageNo">
+		and u.row_num BETWEEN #startNo# AND #endNo# 
+		</isNotEmpty>
+		<isEmpty property="pageNo">
+		and u.row_num BETWEEN 1 AND #viewCount#
+		</isEmpty>
+		
+	</select>
+	
+	<select id="getNCount" parameterClass="java.util.HashMap" resultClass="Integer">
+	select count(maintenance_id)
+		from xm_maintenance m
+		where 1 = 1
+		<isNotEmpty property="selectTextVal">
+			<!-- 검색조건이 전체 -->
+			<!-- isEqual property="selectBtnVal" compareValue="0"> 
+				and 
+				(u.user_id like '%' || #selectTextVal# || '%' or
+				 user_name like '%' || #selectTextVal# || '%' or
+				 u.user_team_id in (select team_id from xm_team xt, xm_department xdt 
+				where xt.department_id = xdt.department_id and xdt.department_name like '%' || #selectTextVal# || '%') or
+				u.user_team_id in (select team_id from xm_team where team_name like '%' || #selectTextVal# || '%')
+				)
+			</isEqual-->
+		</isNotEmpty>
+	</select>
+		
+	<!-- 유지보수 삭제 -->
+	<update id="deleteMatinfo" parameterClass="java.util.HashMap">
+	 DELETE from XM_MAINTENANCE  
+	 WHERE maintenance_id = #chkId#  
+	 </update>
+
+	<!-- 유지보수 수정 -->
+	<update id="updateMatinfo" parameterClass="java.util.HashMap">
+	 Update XM_MAINTENANCE SET 
+	 		customer_id=#custId#,
+	 		project_id=#pjtId#, 
+            dbms_id=#dbmsId#, 
+            cususer_id=#cususerId#, 
+            salesman_id=#salesmanId#, 
+            user1_id=#user1Id#, 
+            user2_id=#user2Id#, 
+            support_install_date=to_date(#installDay#, 'YYYY-MM-DD'),
+            support_level_id=#contractId#, 
+            support_visit_id=#visitId#, 
+            support_start_date=to_date(#startDay#, 'YYYY-MM-DD'), 
+            support_end_date=to_date(#endDay#, 'YYYY-MM-DD'),
+            etc=#etc#  
+	 where maintenance_id = #chkId#
+	 <!-- 
+	 Update XM_MAINTENANCE SET 
+            customer_id=#custId#, 
+            project_id=#pjtId#, 
+            dbms_id=#dbmsId#, 
+            cususer_id=#cususerId#, 
+            salesman_id=#salesmanId#, 
+            user1_id=#user1Id#, 
+            user2_id=#user2Id#, 
+            support_install_date=#installDay#, 
+            support_level_id=#contractId#, 
+            support_visit_id=#visitId#, 
+            support_start_date=#startDay#, 
+            support_end_date=#endDay#, 
+            etc='테스트'  
+	 where maintenance_id = #chkId#
+	 -->
+	 </update>	 	
+	 
+</sqlMap>
